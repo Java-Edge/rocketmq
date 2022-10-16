@@ -145,8 +145,9 @@ public class RocketMQSerializable {
 
     public static byte[] mapSerialize(HashMap<String, String> map) {
         // keySize+key+valSize+val
-        if (null == map || map.isEmpty())
+        if (null == map || map.isEmpty()) {
             return null;
+        }
 
         int totalLength = 0;
         int kvLength;

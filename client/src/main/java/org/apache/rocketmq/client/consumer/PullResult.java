@@ -19,11 +19,18 @@ package org.apache.rocketmq.client.consumer;
 import java.util.List;
 import org.apache.rocketmq.common.message.MessageExt;
 
+/**
+ * @author apple
+ */
 public class PullResult {
     private final PullStatus pullStatus;
     private final long nextBeginOffset;
     private final long minOffset;
     private final long maxOffset;
+
+    /**
+     * 和存储顺序一致，用户需要再拿到这批消息后自己保证消费的顺序。
+     */
     private List<MessageExt> msgFoundList;
 
     public PullResult(PullStatus pullStatus, long nextBeginOffset, long minOffset, long maxOffset,

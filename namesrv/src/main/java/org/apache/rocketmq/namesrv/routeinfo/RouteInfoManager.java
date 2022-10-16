@@ -52,12 +52,44 @@ import org.apache.rocketmq.remoting.common.RemotingUtil;
 
 public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+
+    /**
+     * 120s，broker 上一次心跳时间超过该值便会被剔除
+     */
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+
+    /**
+     * topic消息队列的路由信息，消息发送时会根据路由表进行负载均衡
+     * K=topic名称
+     * V=Map：
+     *      K=brokerName
+     *      V=队列数据，如读/写队列的数量、权重
+     */
     private final HashMap<String/* topic */, Map<String /* brokerName */ , QueueData>> topicQueueTable;
+
+    /**
+     * broker的基础信息
+     * K=brokerName，V=brokerName
+     * broker所在的集群信息，主备broker的地址。
+     */
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
+
+    /**
+     * broker集群信息
+     * K=集群名称
+     * V=集群中所有broker的名称
+     */
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
+
+    /**
+     * Broker状态信息，NameServer每次收到心跳包时会替换该信息。这也是NameServer每10s要扫描的信息。
+     */
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
+
+    /**
+     * Broker上的FilterServer列表，用于类模式消息过滤。类模式过滤机制在4.4及以后版本被废弃
+     */
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
@@ -407,6 +439,7 @@ public class RouteInfoManager {
     }
 
     public TopicRouteData pickupTopicRouteData(final String topic) {
+        // 1.初始化返回值 topicRouteData
         TopicRouteData topicRouteData = new TopicRouteData();
         boolean foundQueueData = false;
         boolean foundBrokerData = false;
@@ -419,14 +452,18 @@ public class RouteInfoManager {
 
         try {
             try {
+                // 2.加读锁
                 this.lock.readLock().lockInterruptibly();
+                // 3.先获取topic对应的queue信息
                 Map<String, QueueData> queueDataMap = this.topicQueueTable.get(topic);
                 if (queueDataMap != null) {
+                    // 4.将queue信息存入返回值
                     topicRouteData.setQueueDatas(new ArrayList<>(queueDataMap.values()));
                     foundQueueData = true;
 
                     brokerNameSet.addAll(queueDataMap.keySet());
 
+                    // 5.遍历队列，找出相关的所有BrokerName
                     for (String brokerName : brokerNameSet) {
                         BrokerData brokerData = this.brokerAddrTable.get(brokerName);
                         if (null != brokerData) {
