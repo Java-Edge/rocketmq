@@ -88,6 +88,7 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
         this.cleanExpireMsgExecutors = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryImpl("CleanExpireMsgScheduledThread_"));
     }
 
+    @Override
     public void start() {
         this.cleanExpireMsgExecutors.scheduleAtFixedRate(new Runnable() {
 

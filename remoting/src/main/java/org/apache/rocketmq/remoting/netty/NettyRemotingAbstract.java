@@ -383,7 +383,7 @@ public abstract class NettyRemotingAbstract {
      * </p>
      */
     public void scanResponseTable() {
-        final List<ResponseFuture> rfList = new LinkedList<ResponseFuture>();
+        final List<ResponseFuture> rfList = new LinkedList<>();
         Iterator<Entry<Integer, ResponseFuture>> it = this.responseTable.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Integer, ResponseFuture> next = it.next();

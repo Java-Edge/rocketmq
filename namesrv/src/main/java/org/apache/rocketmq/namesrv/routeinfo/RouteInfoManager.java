@@ -179,6 +179,7 @@ public class RouteInfoManager {
         RegisterBrokerResult result = new RegisterBrokerResult();
         try {
             try {
+                // 加写锁，保证同一时刻只有一个线程能进行修改
                 this.lock.writeLock().lockInterruptibly();
 
                 Set<String> brokerNames = this.clusterAddrTable.computeIfAbsent(clusterName, k -> new HashSet<>());

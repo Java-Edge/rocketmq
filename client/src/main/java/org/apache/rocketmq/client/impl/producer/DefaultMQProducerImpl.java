@@ -188,7 +188,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
     public void start(final boolean startFactory) throws MQClientException {
         switch (this.serviceState) {
             case CREATE_JUST:
-                this.serviceState = ServiceState.START_FAILED;
+                this.serviceState = ServiceState.START_FAILED; // 先设置为启动失败
 
                 this.checkConfig();
 
@@ -214,6 +214,7 @@ public class DefaultMQProducerImpl implements MQProducerInner {
 
                 log.info("the producer [{}] start OK. sendMessageWithVIPChannel={}", this.defaultMQProducer.getProducerGroup(),
                     this.defaultMQProducer.isSendMessageWithVIPChannel());
+                // 初始化成功后，再明确设置为运行中
                 this.serviceState = ServiceState.RUNNING;
                 break;
             case RUNNING:

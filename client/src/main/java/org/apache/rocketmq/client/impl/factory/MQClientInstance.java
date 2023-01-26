@@ -232,15 +232,15 @@ public class MQClientInstance {
                     if (null == this.clientConfig.getNamesrvAddr()) {
                         this.mQClientAPIImpl.fetchNameServerAddr();
                     }
-                    // Start request-response channel
+                    // Start request-response channel 启动客户端通讯
                     this.mQClientAPIImpl.start();
-                    // Start various schedule tasks
+                    // 启动各种调度任务
                     this.startScheduledTask();
-                    // Start pull service
+                    // 启动拉取服务
                     this.pullMessageService.start();
-                    // Start rebalance service
+                    // 启动负载均衡服务
                     this.rebalanceService.start();
-                    // Start push service
+                    // 启动 push 服务
                     this.defaultMQProducer.getDefaultMQProducerImpl().start(false);
                     log.info("the client factory [{}] start OK", this.clientId);
                     this.serviceState = ServiceState.RUNNING;
@@ -385,7 +385,7 @@ public class MQClientInstance {
      */
     private void cleanOfflineBroker() {
         try {
-            if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS))
+            if (this.lockNamesrv.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 try {
                     ConcurrentHashMap<String, HashMap<Long, String>> updatedTable = new ConcurrentHashMap<String, HashMap<Long, String>>(this.brokerAddrTable.size(), 1);
 
@@ -422,6 +422,7 @@ public class MQClientInstance {
                 } finally {
                     this.lockNamesrv.unlock();
                 }
+            }
         } catch (InterruptedException e) {
             log.warn("cleanOfflineBroker Exception", e);
         }
@@ -694,7 +695,6 @@ public class MQClientInstance {
     private HeartbeatData prepareHeartbeatData() {
         HeartbeatData heartbeatData = new HeartbeatData();
 
-        // clientID
         heartbeatData.setClientID(this.clientId);
 
         // Consumer

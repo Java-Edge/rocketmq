@@ -61,9 +61,15 @@ public class ScheduleMessageService extends ConfigManager {
     private static final long WAIT_FOR_SHUTDOWN = 5000L;
     private static final long DELAY_FOR_A_SLEEP = 10L;
 
+    /**
+     * 延迟级别和延迟时间的对应关系
+     */
     private final ConcurrentMap<Integer /* level */, Long/* delay timeMillis */> delayLevelTable =
-        new ConcurrentHashMap<Integer, Long>(32);
+            new ConcurrentHashMap<>(32);
 
+    /**
+     * 延延迟级别对应的队列消费的offset
+     */
     private final ConcurrentMap<Integer /* level */, Long/* offset */> offsetTable =
         new ConcurrentHashMap<Integer, Long>(32);
     private final DefaultMessageStore defaultMessageStore;
@@ -148,6 +154,7 @@ public class ScheduleMessageService extends ConfigManager {
                 }
             }
 
+            // 启动一个定时任务，把每个扫描队列封装成一个任务，然后加入到timer中
             this.deliverExecutorService.scheduleAtFixedRate(new Runnable() {
 
                 @Override
@@ -406,6 +413,7 @@ public class ScheduleMessageService extends ConfigManager {
             try {
                 int i = 0;
                 ConsumeQueueExt.CqExtUnit cqExtUnit = new ConsumeQueueExt.CqExtUnit();
+                // 每个扫描任务主要是把队列中所有到期的消息都拿出来，并发送到指定的topic下，并把延迟队列中的消息删除
                 for (; i < bufferCQ.getSize() && isStarted(); i += ConsumeQueue.CQ_STORE_UNIT_SIZE) {
                     long offsetPy = bufferCQ.getByteBuffer().getLong();
                     int sizePy = bufferCQ.getByteBuffer().getInt();

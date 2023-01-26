@@ -18,6 +18,12 @@
 package org.apache.rocketmq.test.smoke;
 
 import org.apache.log4j.Logger;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.SendResult;
+import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -58,5 +64,23 @@ public class NormalMessageSendAndRecvIT extends BaseConf {
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
             .containsExactlyElementsIn(producer.getAllMsgBody());
+    }
+
+    @Test
+    public void testSendMessage() throws MQClientException, RemotingException, InterruptedException, MQBrokerException {
+        String namesrvAddr = "127.0.0.1:9876";
+        String group = "test_group";
+        String topic = "test_hello_rocketmq";
+        // 构建Producer实例
+        DefaultMQProducer producer = new DefaultMQProducer();
+        producer.setNamesrvAddr(namesrvAddr);
+        producer.setProducerGroup(group);
+        // 启动producer
+        producer.start();
+        // 发送消息
+        SendResult result = producer.send(new Message(topic, "hello rocketmq".getBytes()));
+        System.out.println(result.getSendStatus());
+        // 关闭producer
+        producer.shutdown();
     }
 }

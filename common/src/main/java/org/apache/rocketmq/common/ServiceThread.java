@@ -33,7 +33,9 @@ public abstract class ServiceThread implements Runnable {
     protected volatile boolean stopped = false;
     protected boolean isDaemon = false;
 
-    //Make it able to restart the thread
+    /**
+     * 使起能重启线程
+     */
     private final AtomicBoolean started = new AtomicBoolean(false);
 
     public ServiceThread() {
