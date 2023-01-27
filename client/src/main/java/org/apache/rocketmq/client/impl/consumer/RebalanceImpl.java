@@ -117,7 +117,7 @@ public abstract class RebalanceImpl {
     }
 
     private HashMap<String/* brokerName */, Set<MessageQueue>> buildProcessQueueTableByBrokerName() {
-        HashMap<String, Set<MessageQueue>> result = new HashMap<String, Set<MessageQueue>>(this.processQueueTable.size(), 1);
+        HashMap<String, Set<MessageQueue>> result = new HashMap<>(this.processQueueTable.size(), 1);
         for (MessageQueue mq : this.processQueueTable.keySet()) {
             Set<MessageQueue> mqs = result.get(mq.getBrokerName());
             if (null == mqs) {
@@ -215,6 +215,7 @@ public abstract class RebalanceImpl {
     }
 
     public void doRebalance(final boolean isOrder) {
+        // 获取topic和订阅关系--之前在启动时候有copy
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
@@ -256,7 +257,9 @@ public abstract class RebalanceImpl {
                 break;
             }
             case CLUSTERING: {
+                // 根据topic获取订阅消息队列
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+                // 获取消费者ID列表
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -275,6 +278,7 @@ public abstract class RebalanceImpl {
                     Collections.sort(mqAll);
                     Collections.sort(cidAll);
 
+                    // 分配消息队列的策略
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
                     List<MessageQueue> allocateResult = null;
@@ -295,6 +299,7 @@ public abstract class RebalanceImpl {
                         allocateResultSet.addAll(allocateResult);
                     }
 
+                    // 更新处理队列
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
@@ -364,7 +369,8 @@ public abstract class RebalanceImpl {
             }
         }
 
-        List<PullRequest> pullRequestList = new ArrayList<PullRequest>();
+        List<PullRequest> pullRequestList = new ArrayList<>();
+        // 将MessageQueue变成PullRequest
         for (MessageQueue mq : mqSet) {
             if (!this.processQueueTable.containsKey(mq)) {
                 if (isOrder && !this.lock(mq)) {

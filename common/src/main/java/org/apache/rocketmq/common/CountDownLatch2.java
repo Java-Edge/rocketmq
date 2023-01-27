@@ -21,7 +21,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 
 /**
- * Add reset feature for @see java.util.concurrent.CountDownLatch
+ * 它支持reset()，可被反复使用。
+ * CyclicBarrier也能被反复使用，它们的应用场景区别在哪里呢？
+ *  *  1. CyclicBarrier 等待事件完成后才继续
+ *  *  2. CountDownLatch 等待其他线程执行到某步
+ * @author apple
  */
 public class CountDownLatch2 {
     private final Sync sync;
@@ -161,9 +165,13 @@ public class CountDownLatch2 {
     private static final class Sync extends AbstractQueuedSynchronizer {
         private static final long serialVersionUID = 4982264981922014374L;
 
+        /**
+         * 区别点，新增成员变量 startCount
+         */
         private final int startCount;
 
         Sync(int count) {
+            // 初始化 startCount
             this.startCount = count;
             setState(count);
         }
@@ -182,14 +190,19 @@ public class CountDownLatch2 {
             // Decrement count; signal when transition to zero
             for (; ; ) {
                 int c = getState();
-                if (c == 0)
+                if (c == 0) {
                     return false;
+                }
                 int nextc = c - 1;
-                if (compareAndSetState(c, nextc))
+                if (compareAndSetState(c, nextc)) {
                     return nextc == 0;
+                }
             }
         }
 
+        /**
+         * 添加了重置的功能，调用后还原到new对象的初始状态
+         */
         protected void reset() {
             setState(startCount);
         }

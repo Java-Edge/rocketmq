@@ -22,6 +22,8 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
  * Average Hashing queue algorithm
+ * 平均分配算法
+ * @author apple
  */
 public class AllocateMessageQueueAveragely extends AbstractAllocateMessageQueueStrategy {
 

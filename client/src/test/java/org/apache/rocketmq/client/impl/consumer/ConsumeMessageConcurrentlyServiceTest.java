@@ -235,7 +235,7 @@ public class ConsumeMessageConcurrentlyServiceTest {
     @Test
     public void testConsumeThreadName() throws Exception {
         final CountDownLatch countDownLatch = new CountDownLatch(1);
-        final AtomicReference<String> consumeThreadName = new AtomicReference<String>();
+        final AtomicReference<String> consumeThreadName = new AtomicReference<>();
 
         StringBuilder consumeGroup2 = new StringBuilder();
         for (int i = 0; i < 101; i++) {
