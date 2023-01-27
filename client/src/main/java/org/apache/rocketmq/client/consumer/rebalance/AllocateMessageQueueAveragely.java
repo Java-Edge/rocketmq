@@ -22,16 +22,19 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
  * Average Hashing queue algorithm
- * 平均分配算法
+ * 平均分配算法，默认策略
  * @author apple
  */
 public class AllocateMessageQueueAveragely extends AbstractAllocateMessageQueueStrategy {
 
+    /**
+     * 整除之外的多出来的queue,依次根据消费者的顺序均摊
+     */
     @Override
     public List<MessageQueue> allocate(String consumerGroup, String currentCID, List<MessageQueue> mqAll,
         List<String> cidAll) {
 
-        List<MessageQueue> result = new ArrayList<MessageQueue>();
+        List<MessageQueue> result = new ArrayList<>();
         if (!check(consumerGroup, currentCID, mqAll, cidAll)) {
             return result;
         }

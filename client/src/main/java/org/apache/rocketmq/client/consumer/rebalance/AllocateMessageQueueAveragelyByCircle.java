@@ -23,6 +23,7 @@ import org.apache.rocketmq.common.message.MessageQueue;
 /**
  * Cycle average Hashing queue algorithm
  * 基于环形平均分配算法
+ * 根据消费者的顺序，依次在由queue队列组成的环形图中逐个分配
  */
 public class AllocateMessageQueueAveragelyByCircle extends AbstractAllocateMessageQueueStrategy {
 
