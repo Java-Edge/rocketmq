@@ -57,6 +57,11 @@ public class TimerLog {
         return append(data, 0, data.length);
     }
 
+    /**
+     * 将定时消息索引写入 TimerLog
+     *
+     * @return TimerLog 写入的物理偏移量，写入失败返回 -1
+     */
     public long append(byte[] data, int pos, int len) {
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();
         if (null == mappedFile || mappedFile.isFull()) {
@@ -99,6 +104,11 @@ public class TimerLog {
         return mappedFile.selectMappedBuffer((int) (offsetPy % mappedFile.getFileSize()));
     }
 
+    /**
+     * 根据偏移量获取 Buffer
+     *
+     * @param offsetPy TimerLog 中的物理偏移量
+     */
     public SelectMappedBufferResult getWholeBuffer(long offsetPy) {
         MappedFile mappedFile = mappedFileQueue.findMappedFileByOffset(offsetPy);
         if (null == mappedFile)

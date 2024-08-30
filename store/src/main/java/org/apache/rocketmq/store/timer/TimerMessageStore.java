@@ -169,7 +169,7 @@ public class TimerMessageStore {
         this.timerLogFileSize = storeConfig.getMappedFileSizeTimerLog();
         this.precisionMs = storeConfig.getTimerPrecisionMs();
 
-        // TimerWheel contains the fixed number of slots regardless of precision.
+        // TimerWheel contains the fixed number of slots regardless of precision.TimerWheel 包含固定数量的槽，而不管精度如何
         this.slotsTotal = TIMER_WHEEL_TTL_DAY * DAY_SECS;
         this.timerWheel = new TimerWheel(
             getTimerWheelPath(storeConfig.getStorePathRootDir()), this.slotsTotal, precisionMs);
@@ -639,6 +639,12 @@ public class TimerMessageStore {
         holdMomentForUnknownError(50);
     }
 
+    /**
+     * 从 commitLog 读取指定主题（TIMER_TOPIC）的定时消息，放入 enqueuePutQueue
+     *
+     * @param queueId 定时消息主题队列 ID，默认为 0（定时消息主题只有一个队列）
+     * @return 是否取到消息
+     */
     public boolean enqueue(int queueId) {
         if (storeConfig.isTimerStopEnqueue()) {
             return false;
@@ -646,10 +652,12 @@ public class TimerMessageStore {
         if (!isRunningEnqueue()) {
             return false;
         }
+        // 获取延时消息topic的消费队列
         ConsumeQueueInterface cq = this.messageStore.getConsumeQueue(TIMER_TOPIC, queueId);
         if (null == cq) {
             return false;
         }
+        // 更新当前读取的队列偏移量
         if (currQueueOffset < cq.getMinOffsetInQueue()) {
             LOGGER.warn("Timer currQueueOffset:{} is smaller than minOffsetInQueue:{}",
                 currQueueOffset, cq.getMinOffsetInQueue());
@@ -664,6 +672,7 @@ public class TimerMessageStore {
             }
 
             int i = 0;
+            // 遍历消费队列中的索引，查询消息，封装成 TimerRequest，放入 enqueuePutQueue
             while (iterator.hasNext()) {
                 i++;
                 perfCounterTicks.startTick("enqueue_get");
@@ -721,10 +730,20 @@ public class TimerMessageStore {
         return false;
     }
 
+    /**
+     * 将 CommitLog 中的定时消息放入 TimerLog 和时间轮
+     *
+     * @param offsetPy 索引项在 TimerLog 中的物理偏移量
+     * @param sizePy 索引项在 TimerLog 中的大小
+     * @param delayedTime 定时投递时间
+     * @param messageExt 索引项对应的消息
+     * @return 写入 TimerLog 是否成功
+     */
     public boolean doEnqueue(long offsetPy, int sizePy, long delayedTime, MessageExt messageExt) {
         LOGGER.debug("Do enqueue [{}] [{}]", new Timestamp(delayedTime), messageExt);
         //copy the value first, avoid concurrent problem
         long tmpWriteTimeMs = currWriteTimeMs;
+        // 判断定时消息是否需要轮转。判断依据为：定时消息是不是近 2 天内要投递，不是则轮转
         boolean needRoll = delayedTime - tmpWriteTimeMs >= (long) timerRollWindowSlots * precisionMs;
         int magic = MAGIC_DEFAULT;
         if (needRoll) {
@@ -736,11 +755,13 @@ public class TimerMessageStore {
                 delayedTime = tmpWriteTimeMs + (long) timerRollWindowSlots * precisionMs;
             }
         }
+        // 是否是取消定时消息
         boolean isDelete = messageExt.getProperty(TIMER_DELETE_UNIQUE_KEY) != null;
         if (isDelete) {
             magic = magic | MAGIC_DELETE;
         }
         String realTopic = messageExt.getProperty(MessageConst.PROPERTY_REAL_TOPIC);
+        // 获取定时消息对应的时间轮槽
         Slot slot = timerWheel.getSlot(delayedTime);
         ByteBuffer tmpBuffer = timerLogBuffer;
         tmpBuffer.clear();
@@ -755,6 +776,7 @@ public class TimerMessageStore {
         tmpBuffer.putLong(0); //reserved value, just set to 0 now
         long ret = timerLog.append(tmpBuffer.array(), 0, TimerLog.UNIT_SIZE);
         if (-1 != ret) {
+            // 写入 TimerLog 成功，将写入 TimerLog 的消息加入时间轮
             // If it's a delete message, then slot's total num -1
             // TODO: check if the delete msg is in the same slot with "the msg to be deleted".
             timerWheel.putSlot(delayedTime, slot.firstPos == -1 ? ret : slot.firstPos, ret,
@@ -890,6 +912,12 @@ public class TimerMessageStore {
         }
     }
 
+    /**
+     * 获取时间轮一个槽位中对应的 TimerLog 定时消息请求列表，放入 dequeueGetQueue 中处理
+     *
+     * @return 0：当前读取的时间轮槽为空 no message，1：处理成功，2：处理失败
+     * @throws Exception
+     */
     public int dequeue() throws Exception {
         if (storeConfig.isTimerStopDequeue()) {
             return -1;
@@ -1288,6 +1316,7 @@ public class TimerMessageStore {
 
     }
 
+    // 保存——扫描定时消息
     public class TimerEnqueueGetService extends ServiceThread {
 
         @Override
@@ -1322,6 +1351,7 @@ public class TimerMessageStore {
         return brokerIdentifier;
     }
 
+    // 保存——定时消息放入时间轮
     public class TimerEnqueuePutService extends ServiceThread {
 
         @Override
@@ -1356,10 +1386,13 @@ public class TimerMessageStore {
             try {
                 perfCounterTicks.startTick(ENQUEUE_PUT);
                 DefaultStoreMetricsManager.incTimerEnqueueCount(getRealTopic(req.getMsg()));
+                // 若延时时间小于当前写 TimerLog 的时间，说明消息已到期
                 if (shouldRunningDequeue && req.getDelayTime() < currWriteTimeMs) {
                     req.setEnqueueTime(Long.MAX_VALUE);
+                    // 直接加入 dequeuePutQueue，准备投递到 CommitLog
                     dequeuePutQueue.put(req);
                 } else {
+                    // 将 TimerRequest 加入 TimerLog 和时间轮
                     boolean doEnqueueRes = doEnqueue(
                         req.getOffsetPy(), req.getSizePy(), req.getDelayTime(), req.getMsg());
                     req.idempotentRelease(doEnqueueRes || storeConfig.isTimerSkipUnknownError());
@@ -1377,27 +1410,36 @@ public class TimerMessageStore {
 
         protected void fetchAndPutTimerRequest() throws Exception {
             long tmpCommitQueueOffset = currQueueOffset;
+            // 如果队列中有 TimerRequest，循环将队列中的所有 TimerRequest 都取出
             List<TimerRequest> trs = this.fetchTimerRequests();
+            // 队列中没有 TimerRequest
             if (CollectionUtils.isEmpty(trs)) {
+                // 更新 commitQueueOffset
                 commitQueueOffset = tmpCommitQueueOffset;
                 maybeMoveWriteTime();
+                // 直接跳过
                 return;
             }
 
             while (!isStopped()) {
+                // 并发将 TimerRequest 中的消息写入到 TimerLog 中
                 CountDownLatch latch = new CountDownLatch(trs.size());
                 for (TimerRequest req : trs) {
                     req.setLatch(latch);
                     this.putMessageToTimerWheel(req);
                 }
+                // 检查和等待 CountDownLatch
                 checkDequeueLatch(latch, -1);
                 boolean allSuccess = trs.stream().allMatch(TimerRequest::isSucc);
                 if (allSuccess) {
+                    // 全部写入成功
                     break;
                 } else {
+                    // 有写入失败，等待 50ms
                     holdMomentForUnknownError();
                 }
             }
+            // 更新 commitQueueOffset 和 currWriteTimeMs
             commitQueueOffset = trs.get(trs.size() - 1).getMsg().getQueueOffset();
             maybeMoveWriteTime();
         }
@@ -1416,6 +1458,7 @@ public class TimerMessageStore {
         }
     }
 
+    // 投递——扫描时间轮中到期的消息
     public class TimerDequeueGetService extends ServiceThread {
 
         @Override
