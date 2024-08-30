@@ -67,6 +67,7 @@ public abstract class ConfigManager {
 
     public abstract void decode(final String jsonString);
 
+    // 防止配置文件被同时写入导致的数据不一致问题
     public synchronized void persist() {
         String jsonString = this.encode(true);
         if (jsonString != null) {
