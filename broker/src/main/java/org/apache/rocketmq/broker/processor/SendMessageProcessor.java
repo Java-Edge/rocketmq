@@ -313,6 +313,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
 
         CompletableFuture<PutMessageResult> putMessageResult = null;
+        // 根据消息中的属性判断是普通消息还是半消息
         String transFlag = origProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
         if (Boolean.parseBoolean(transFlag)) {
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {

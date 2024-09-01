@@ -141,7 +141,7 @@ public class EndTransactionProcessor extends AsyncNettyRequestProcessor implemen
                     return sendResult;
                 }
                 return res;
-            }
+            } // 如果是回滚事务
         } else if (MessageSysFlag.TRANSACTION_ROLLBACK_TYPE == requestHeader.getCommitOrRollback()) {
             result = this.brokerController.getTransactionalMessageService().rollbackMessage(requestHeader);
             if (result.getResponseCode() == ResponseCode.SUCCESS) {

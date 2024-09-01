@@ -64,6 +64,7 @@ public class Broker2Client {
         final Channel channel,
         final CheckTransactionStateRequestHeader requestHeader,
         final MessageExt messageExt) throws Exception {
+        // Broker给对应Producer发送要求执行 事务状态反查的RPC请求
         RemotingCommand request =
             RemotingCommand.createRequestCommand(RequestCode.CHECK_TRANSACTION_STATE, requestHeader);
         request.setBody(MessageDecoder.encode(messageExt, false));
