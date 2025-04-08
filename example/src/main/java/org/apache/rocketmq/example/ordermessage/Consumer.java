@@ -53,7 +53,7 @@ public class Consumer {
                 return ConsumeOrderlyStatus.SUCCESS;
             }
         });
-
+        // 5. 启动消费者(必须在注册完消息监听器后启动，否则会报错）
         consumer.start();
         System.out.printf("Consumer Started.%n");
     }

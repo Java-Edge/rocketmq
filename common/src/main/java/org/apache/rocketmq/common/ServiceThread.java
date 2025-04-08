@@ -67,9 +67,6 @@ public abstract class ServiceThread implements Runnable {
 
     public abstract String getServiceName();
 
-    /**
-     *
-     */
     public void start() {
         log.info("Try to start service thread:{} started:{} lastThread:{}", getServiceName(), started.get(), thread);
         // 保证了不管调用多少次start()方法，只会有一个线程在运行
