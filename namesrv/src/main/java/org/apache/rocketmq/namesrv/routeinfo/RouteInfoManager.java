@@ -60,6 +60,7 @@ public class RouteInfoManager {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
+     * 维护topic和queue信息
      * topic消息队列的路由信息，消息发送时会根据路由表进行负载均衡
      * K=topic名称
      * V=Map：
@@ -69,6 +70,7 @@ public class RouteInfoManager {
     private final HashMap<String/* topic */, Map<String /* brokerName */ , QueueData>> topicQueueTable;
 
     /**
+     * 维护集群中每个brokerName对应的Broker信息
      * broker的基础信息
      * K=brokerName，V=brokerName
      * broker所在的集群信息，主备broker的地址。
@@ -76,6 +78,7 @@ public class RouteInfoManager {
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
 
     /**
+     * 维护clusterName与BrokerName的对应关系
      * broker集群信息
      * K=集群名称
      * V=集群中所有broker的名称
@@ -83,11 +86,13 @@ public class RouteInfoManager {
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
 
     /**
+     * 维护每个Broker(brokerAddr)当前的动态信息，包括心跳更新时间，路由数据版本等
      * Broker状态信息，NameServer每次收到心跳包时会替换该信息。这也是NameServer每10s要扫描的信息。
      */
     private final HashMap<String/* brokerAddr */, BrokerLiveInfo> brokerLiveTable;
 
     /**
+     * 维护每个Broker (brokerAddr)对应的消息过滤服务的地址(Filter Server)，用于服务端消息过滤
      * Broker上的FilterServer列表，用于类模式消息过滤。类模式过滤机制在4.4及以后版本被废弃
      */
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
